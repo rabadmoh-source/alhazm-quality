@@ -17,8 +17,11 @@ async function activate(){
  const headers={authorization:'Bearer '+session.access_token,apikey:'sb_publishable_6gpJNjwQTHDnMbiJJzBt9A_gILYiLio'};
  try{
   const response=await fetch('https://tyxdoyiqltanvozrpxtu.supabase.co/functions/v1/quality-admin-activate',{method:'POST',headers});
-  if(!response.ok){message.textContent='حسابك مسجل، لكنه غير معتمد بصلاحية الإدارة.';return;}
-  message.textContent='تم التحقق من حساب مديرة النظام.';
+  if(!response.ok){
+   const memberResponse=await fetch('https://tyxdoyiqltanvozrpxtu.supabase.co/functions/v1/quality-team',{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify({action:'activate'})});
+   if(!memberResponse.ok){message.textContent='تم تسجيل الدخول، لكن البريد غير مضاف بعد إلى فريق التقويم.';return;}
+   message.textContent='تم التحقق من عضويتك في فريق التقويم الذاتي.';
+  }else{message.textContent='تم التحقق من حساب مديرة النظام.';}
   login.classList.add('hidden');logout.classList.remove('hidden');
  }catch{message.textContent='تعذر الاتصال بخدمة تفعيل الصلاحيات.';}
 }
