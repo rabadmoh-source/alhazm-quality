@@ -5,8 +5,8 @@ const client=createClient(api,key,{auth:{detectSessionInUrl:true,persistSession:
 const evidenceNode=document.getElementById('evidence');
 const area=document.createElement('section');
 area.id='cloudEvidencePanel';
-area.className='cloud-evidence-panel hidden';
-area.innerHTML='<h3>☁️ شواهد المؤشر المحفوظة سحابيًا</h3><p class="cloud-help">لا تظهر الأدلة إلا للحسابات المصرّح لها. رفع الملفات إلى التخزين السحابي قيد الاختبار.</p><div id="cloudEvidenceItems"></div><form id="cloudEvidenceForm" class="cloud-upload-form hidden"><label>عنوان الشاهد<input id="cloudTitle" required maxlength="300" placeholder="عنوان واضح للدليل"></label><label>وصف الشاهد<textarea id="cloudDescription" maxlength="2000" placeholder="وصف اختياري"></textarea></label><label>اختيار ملف<input id="cloudFile" type="file" required accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xlsx,.pptx"></label><small>المرحلة التجريبية: صور وملفات حتى 5 ميجابايت. دعم الفيديوهات الكبيرة لاحقًا.</small><button class="primary" type="submit">حفظ الشاهد سحابيًا</button></form><p id="cloudEvidenceStatus" role="status"></p>';
+area.className='cloud-evidence-panel';
+area.innerHTML='<h3>☁️ رفع شواهد المؤشر وحفظها سحابيًا</h3><p class="cloud-help" id="cloudAccessHelp">لإضافة الصور والملفات، سجّلي الدخول من خانة «دخول إدارة منصة الجودة» أعلى الصفحة. ستظهر استمارة الرفع هنا فور تفعيل صلاحية حسابك. لا يلزم أعضاء الفريق التعامل مع أي برمجيات.</p><div id="cloudEvidenceItems"></div><form id="cloudEvidenceForm" class="cloud-upload-form hidden"><label>عنوان الشاهد<input id="cloudTitle" required maxlength="300" placeholder="عنوان واضح للدليل"></label><label>وصف الشاهد<textarea id="cloudDescription" maxlength="2000" placeholder="وصف اختياري"></textarea></label><label>اختيار ملف<input id="cloudFile" type="file" required accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xlsx,.pptx"></label><small>المرحلة التجريبية: صور وملفات حتى 5 ميجابايت. دعم الفيديوهات الكبيرة لاحقًا.</small><button class="primary" type="submit">حفظ الشاهد سحابيًا</button></form><p id="cloudEvidenceStatus" role="status"></p>';
 evidenceNode.after(area);
 const $=id=>document.getElementById(id);
 let session=null,indicators=[];
@@ -18,12 +18,12 @@ async function call(route,options={}){
 }
 async function init(){
  const auth=await client.auth.getSession();session=auth.data.session;
- if(!session)return;
+ if(!session){$('cloudEvidenceStatus').textContent='لرفع دليل جديد: سجّلي الدخول أولًا باستخدام البريد المعتمد.';return;}
  try{
   const response=await call('quality-evidence-api/catalog');
   const catalog=await response.json();indicators=catalog.indicators||[];
-  document.body.classList.add('cloud-authenticated');area.classList.remove('hidden');
-  if(['admin','editor'].includes(catalog.role))$('cloudEvidenceForm').classList.remove('hidden');
+  document.body.classList.add('cloud-authenticated');$('cloudAccessHelp').textContent='أنتِ الآن في مساحة الأدلة السحابية. اختاري ملفًا ثم احفظيه، وسيظهر للشخص المخوّل ضمن هذا المؤشر.';
+  if(['admin','editor'].includes(catalog.role))$('cloudEvidenceForm').classList.remove('hidden');else $('cloudAccessHelp').textContent='لديك صلاحية الاطلاع فقط على الشواهد، وليس رفع الملفات.';
   await render();
  }catch{
   $('cloudEvidenceStatus').textContent='الحساب غير مفعل للوصول إلى أدلة المؤشرات بعد.';
@@ -74,5 +74,7 @@ $('cloudEvidenceForm').addEventListener('submit',async e=>{
  }catch(error){$('cloudEvidenceStatus').textContent='لم ينجح الرفع: '+error.message;}finally{btn.disabled=false;}
 });
 document.getElementById('indicatorList').addEventListener('click',()=>setTimeout(render,0));
+document.getElementById('standards').addEventListener('click',()=>setTimeout(render,0));
+document.addEventListener('quality-indicator-changed',()=>setTimeout(render,0));
 client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN')setTimeout(()=>location.reload(),400);});
 init();
