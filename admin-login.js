@@ -1,28 +1,69 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.79.0';
-const client=createClient('https://tyxdoyiqltanvozrpxtu.supabase.co','sb_publishable_6gpJNjwQTHDnMbiJJzBt9A_gILYiLio',{auth:{detectSessionInUrl:true,persistSession:true}});
-const message=document.getElementById('adminLoginMessage');
-const form=document.getElementById('adminLoginForm');
-const input=document.getElementById('adminEmail');
-const login=document.getElementById('adminLoginButton');
-const logout=document.getElementById('adminLogoutButton');
-form.addEventListener('submit',async event=>{
- event.preventDefault();login.disabled=true;message.textContent='جارٍ إرسال رابط التحقق...';
- const {error}=await client.auth.signInWithOtp({email:input.value.trim(),options:{emailRedirectTo:'https://rabadmoh-source.github.io/alhazm-quality/',shouldCreateUser:true}});
- login.disabled=false;
- message.textContent=error?'تعذر إرسال الرابط: '+error.message:'أُرسل رابط الدخول. افتحي Gmail على الكمبيوتر نفسه، ثم افتحي الرابط من الرسالة لتفعيل الإدارة هنا.';
-});
-logout.addEventListener('click',async()=>{await client.auth.signOut();logout.classList.add('hidden');login.classList.remove('hidden');message.textContent='تم تسجيل الخروج.';});
-async function activate(){
- const {data:{session},error:sessionError}=await client.auth.getSession();if(sessionError){message.textContent='تعذر قراءة جلسة الدخول. حدّثي الصفحة ثم حاولي من جديد.';return;}if(!session){message.textContent='لم يُسجّل الدخول على هذا الجهاز بعد. إذا كان بريدك على الهاتف، افتحي Gmail من متصفح الكمبيوتر لتفعيل الإدارة هنا.';return;}
- const headers={authorization:'Bearer '+session.access_token,apikey:'sb_publishable_6gpJNjwQTHDnMbiJJzBt9A_gILYiLio'};
+const api='https://tyxdoyiqltanvozrpxtu.supabase.co';
+const pub='sb_publishable_6gpJNjwQTHDnMbiJJzBt9A_gILYiLio';
+const redirect='https://rabadmoh-source.github.io/alhazm-quality/';
+const client=createClient(api,pub,{auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
+const $=id=>document.getElementById(id);
+const form=$('adminLoginForm'), message=$('adminLoginMessage'), email=$('adminEmail'), password=$('adminPassword');
+const login=$('adminLoginButton'), logout=$('adminLogoutButton'), reset=$('adminResetPasswordButton'), setup=$('adminPasswordSetup');
+function status(text){message.textContent=text;}
+function loggedIn(active){login.classList.toggle('hidden',active);logout.classList.toggle('hidden',!active);password.classList.toggle('hidden',active);password.required=!active;email.classList.toggle('hidden',active);email.required=!active;}
+form.addEventListener('submit',async e=>{
+ e.preventDefault();login.disabled=true;status('جارٍ تسجيل الدخول...');
  try{
-  const response=await fetch('https://tyxdoyiqltanvozrpxtu.supabase.co/functions/v1/quality-admin-activate',{method:'POST',headers});
-  if(!response.ok){
-   const memberResponse=await fetch('https://tyxdoyiqltanvozrpxtu.supabase.co/functions/v1/quality-team',{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify({action:'activate'})});
-   if(!memberResponse.ok){message.textContent='تم تسجيل الدخول، لكن البريد غير مضاف بعد إلى فريق التقويم.';return;}
-   message.textContent='تم التحقق من عضويتك في فريق التقويم الذاتي.';
-  }else{message.textContent='تم التحقق من حساب مديرة النظام. أصبح رفع الأدلة متاحًا في لوحات المؤشرات.';}
-  login.classList.add('hidden');logout.classList.remove('hidden');
- }catch{message.textContent='تعذر الاتصال بخدمة تفعيل الصلاحيات.';}
+  const {error}=await client.auth.signInWithPassword({email:email.value.trim(),password:password.value});
+  if(error){status('تعذر الدخول. تأكدي من البريد وكلمة المرور، أو اختاري «تعيين / نسيت كلمة المرور».');return;}
+  password.value='';loggedIn(true);status('تم تسجيل الدخول بنجاح. جارٍ تفعيل لوحة الأدلة...');
+  await activate();
+  location.reload();
+ }catch{status('تعذر الاتصال بخدمة الدخول. حاولي مجددًا.');}
+ finally{login.disabled=false;}
+});
+reset.addEventListener('click',async()=>{
+ const {data:{session}}=await client.auth.getSession();
+ if(session){setup.classList.remove('hidden');status('أدخلي كلمة المرور الجديدة مرتين ثم احفظيها.');return;}
+ const address=email.value.trim();
+ if(!address){status('أدخلي بريدك الإلكتروني أولًا، ثم اضغطي «تعيين / نسيت كلمة المرور».');email.focus();return;}
+ reset.disabled=true;status('جارٍ إرسال رابط تعيين كلمة المرور لمرة واحدة...');
+ try{
+  const {error}=await client.auth.resetPasswordForEmail(address,{redirectTo:redirect});
+  status(error?'تعذر إرسال رابط التعيين: '+error.message:'تم إرسال رابط تعيين كلمة المرور. افتحيه مرة واحدة من بريدك، ثم عيّني كلمة المرور الجديدة. بعد ذلك سيكون الدخول مباشرًا من أي جهاز.');
+ }catch{status('تعذر إرسال الرسالة، حاولي مجددًا.');}finally{reset.disabled=false;}
+});
+setup.addEventListener('submit',async e=>{
+ e.preventDefault();
+ const next=$('adminNewPassword').value,confirm=$('adminNewPasswordConfirm').value;
+ if(next!==confirm){status('كلمتا المرور غير متطابقتين.');return;}
+ if(next.length<8){status('اختاري كلمة مرور من 8 أحرف على الأقل.');return;}
+ const button=setup.querySelector('button');button.disabled=true;status('جارٍ حفظ كلمة المرور...');
+ try{
+  const {error}=await client.auth.updateUser({password:next});
+  if(error){status('لم تُحفظ كلمة المرور: '+error.message);return;}
+  setup.reset();setup.classList.add('hidden');status('تم حفظ كلمة المرور بنجاح! يمكنك الدخول بها من أي جهاز دون رابط بريد جديد.');
+  await activate();
+ }catch{status('تعذر حفظ كلمة المرور، حاولي مجددًا.');}finally{button.disabled=false;}
+});
+logout.addEventListener('click',async()=>{
+ await client.auth.signOut();loggedIn(false);setup.classList.add('hidden');status('تم تسجيل الخروج.');location.reload();
+});
+async function activate(){
+ const {data:{session}}=await client.auth.getSession();
+ if(!session)return;
+ const headers={authorization:'Bearer '+session.access_token,apikey:pub};
+ try{
+  let response=await fetch(api+'/functions/v1/quality-admin-activate',{method:'POST',headers});
+  if(!response.ok)response=await fetch(api+'/functions/v1/quality-team',{method:'POST',headers:{...headers,'content-type':'application/json'},body:JSON.stringify({action:'activate'})});
+  if(!response.ok){status('تم تسجيل الدخول، لكن هذا البريد لم يُضف بعد إلى فريق التقويم.');return;}
+  loggedIn(true);status('أهلًا بكِ في إدارة منصة الحزم للجودة. رفع الأدلة متاح ضمن المؤشرات.');
+ }catch{status('تم الدخول، لكن تعذر الاتصال بخدمة العضوية مؤقتًا.');}
 }
-activate();
+client.auth.onAuthStateChange((event)=>{
+ if(event==='PASSWORD_RECOVERY'){setup.classList.remove('hidden');status('اكتمل التحقق من البريد. اختاري الآن كلمة المرور التي ستستخدمينها دائمًا.');}
+});
+(async()=>{
+ try{
+  const {data:{session}}=await client.auth.getSession();
+  if(session){loggedIn(true);await activate();}
+  else status('دخول الإدارة بالبريد وكلمة المرور. إذا كانت هذه أول مرة، اختاري «تعيين / نسيت كلمة المرور» لمرة واحدة.');
+ }catch{status('تعذر التحقق من الجلسة الحالية.');}
+})();
