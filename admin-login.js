@@ -77,7 +77,11 @@ client.auth.onAuthStateChange((event)=>{
 (async()=>{
  try{
   const {data:{session}}=await client.auth.getSession();
-  if(session){loggedIn(true);await activate();}
-  else status('دخول الإدارة بالبريد وكلمة المرور. إذا كانت هذه أول مرة، اختاري «تعيين / نسيت كلمة المرور» لمرة واحدة.');
+  if(session){
+    const {data:{user},error}=await client.auth.getUser();
+    if(error||!user){await client.auth.signOut({scope:'local'});loggedIn(false);status('أصبحت المنصة جاهزة لإنشاء حسابك الجديد. أدخلي البريد وكلمة المرور ثم اضغطي «تسجيل حساب جديد».');}
+    else{loggedIn(true);await activate();}
+  }
+  else status('للحساب الجديد: أدخلي البريد وكلمة المرور ثم اضغطي «تسجيل حساب جديد». وبعد التأكيد، استخدمي زر «دخول الإدارة» دائمًا.');
  }catch{status('تعذر التحقق من الجلسة الحالية.');}
 })();
