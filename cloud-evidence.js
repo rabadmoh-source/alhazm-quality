@@ -76,5 +76,5 @@ $('cloudEvidenceForm').addEventListener('submit',async e=>{
 document.getElementById('indicatorList').addEventListener('click',()=>setTimeout(render,0));
 document.getElementById('standards').addEventListener('click',()=>setTimeout(render,0));
 document.addEventListener('quality-indicator-changed',()=>setTimeout(render,0));
-client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN')setTimeout(()=>location.reload(),400);});
+client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'){setTimeout(()=>init(),200);}else if(event==='SIGNED_OUT'){session=null;document.body.classList.remove('cloud-authenticated');$('cloudEvidenceForm').classList.add('hidden');$('cloudAccessHelp').textContent='سجّلي الدخول من أعلى الصفحة لرفع الأدلة.';}});
 init();
