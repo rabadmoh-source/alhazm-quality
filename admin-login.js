@@ -5,9 +5,9 @@ const redirect='https://rabadmoh-source.github.io/alhazm-quality/';
 const client=createClient(api,pub,{auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}});
 const $=id=>document.getElementById(id);
 const form=$('adminLoginForm'), message=$('adminLoginMessage'), email=$('adminEmail'), password=$('adminPassword');
-const login=$('adminLoginButton'), logout=$('adminLogoutButton'), reset=$('adminResetPasswordButton'), setup=$('adminPasswordSetup');
+const login=$('adminLoginButton'), signup=$('adminSignupButton'), logout=$('adminLogoutButton'), reset=$('adminResetPasswordButton'), setup=$('adminPasswordSetup');
 function status(text){message.textContent=text;}
-function loggedIn(active){login.classList.toggle('hidden',active);logout.classList.toggle('hidden',!active);password.classList.toggle('hidden',active);password.required=!active;email.classList.toggle('hidden',active);email.required=!active;}
+function loggedIn(active){login.classList.toggle('hidden',active);signup.classList.toggle('hidden',active);logout.classList.toggle('hidden',!active);password.classList.toggle('hidden',active);password.required=!active;email.classList.toggle('hidden',active);email.required=!active;}
 form.addEventListener('submit',async e=>{
  e.preventDefault();login.disabled=true;status('جارٍ تسجيل الدخول...');
  try{
@@ -18,6 +18,20 @@ form.addEventListener('submit',async e=>{
   location.reload();
  }catch{status('تعذر الاتصال بخدمة الدخول. حاولي مجددًا.');}
  finally{login.disabled=false;}
+});
+signup.addEventListener('click',async()=>{
+ const address=email.value.trim(),secret=password.value;
+ if(!address||!secret){status('أدخلي البريد الإلكتروني وكلمة المرور التي تريدين استخدامها، ثم اضغطي «تسجيل حساب جديد».');return;}
+ if(secret.length<8){status('يرجى اختيار كلمة مرور من 8 أحرف على الأقل.');return;}
+ signup.disabled=true;status('جارٍ إنشاء الحساب...');
+ try{
+  const {data,error}=await client.auth.signUp({email:address,password:secret,options:{emailRedirectTo:redirect}});
+  if(error){status('تعذر إنشاء الحساب: '+error.message);return;}
+  if(!data.session){status('إذا كان هذا بريدًا جديدًا، تحققي من رسالة تأكيد الحساب مرة واحدة، ثم اضغطي «دخول الإدارة». إذا كان البريد مسجلًا سابقًا فلن يُنشأ حساب ثانٍ، ولا تتغير كلمة مروره بهذه الطريقة.');return;}
+  status('أُنشئ الحساب. ستُفعّل صلاحية الفريق بعد اعتماد الإدارة.');
+  await activate();
+ }catch{status('تعذر الاتصال بخدمة الحسابات.');}
+ finally{signup.disabled=false;}
 });
 reset.addEventListener('click',async()=>{
  const {data:{session}}=await client.auth.getSession();
