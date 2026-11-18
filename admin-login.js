@@ -9,17 +9,34 @@ $('adminPasswordSetup').remove();
 signup.textContent='إنشاء حسابي لأول مرة';
 password.minLength=8;
 form.closest('.admin-login').querySelector('p').textContent='البريد الإلكتروني وكلمة المرور فقط. إنشاء الحساب مرة واحدة، ثم دخول مباشر من أي جهاز.';
+const accountBadge=document.createElement('div');
+accountBadge.id='qualityAccountBadge';
+accountBadge.setAttribute('aria-live','polite');
+accountBadge.style.cssText='display:none;align-items:center;gap:9px;max-width:100%;padding:9px 14px;border:1px solid #bce8e3;border-radius:14px;background:#ecfaf8;color:#24545b;font-weight:700;font-size:14px;direction:rtl;overflow-wrap:anywhere';
+const accountIcon=document.createElement('span');
+accountIcon.textContent='👤';accountIcon.setAttribute('aria-hidden','true');
+const accountText=document.createElement('span');
+accountBadge.append(accountIcon,accountText);
+document.querySelector('.top')?.append(accountBadge);
+function showAccount(session,isAdmin=false){
+ if(!session){accountBadge.style.display='none';accountText.textContent='';return;}
+ const address=session.user?.email||'حساب مسجل';
+ accountText.textContent=(isAdmin?'المديرة • رباب العجمية':'الحساب الحالي')+' | '+address;
+ accountBadge.style.display='inline-flex';
+}
 const status=value=>{message.textContent=value;};
 function display(session){
  const active=Boolean(session);
  for(const control of [email,password,login,signup])control.classList.toggle('hidden',active);
  logout.classList.toggle('hidden',!active);email.required=!active;password.required=!active;
  if(active)password.value='';
+ showAccount(session);
 }
 async function activate(session){
  const headers={apikey:key,authorization:'Bearer '+session.access_token};
  try{
   const response=await fetch(endpoint+'/functions/v1/quality-admin-activate',{method:'POST',headers});
+  showAccount(session,response.ok);
   status(response.ok?'تم الدخول بنجاح. يمكنك الآن إضافة الأدلة والشواهد.':'تم الدخول، لكن حسابك ينتظر اعتماد صلاحية الإدارة.');
   document.dispatchEvent(new Event('quality-login-ready'));
  }catch{status('تم الدخول، لكن خدمة الصلاحيات غير متاحة حاليًا.');}
