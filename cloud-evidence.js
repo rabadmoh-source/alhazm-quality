@@ -6,7 +6,7 @@ const evidenceNode=document.getElementById('evidence');
 const area=document.createElement('section');
 area.id='cloudEvidencePanel';
 area.className='cloud-evidence-panel';
-area.innerHTML='<h3 class="cloud-gallery-title">📁 الشواهد المحفوظة لهذا المؤشر</h3><p class="cloud-help" id="cloudAccessHelp">لإضافة الصور والملفات، سجّلي الدخول من خانة «دخول إدارة منصة الجودة» أعلى الصفحة. ستظهر استمارة الرفع هنا فور تفعيل صلاحية حسابك. لا يلزم أعضاء الفريق التعامل مع أي برمجيات.</p><div id="cloudEvidenceItems"></div><button type="button" class="primary hidden" id="cloudUploadToggle">＋ إضافة شاهد جديد</button><form id="cloudEvidenceForm" class="cloud-upload-form hidden"><label>عنوان الشاهد<input id="cloudTitle" required maxlength="300" placeholder="عنوان واضح للدليل"></label><label>وصف الشاهد<textarea id="cloudDescription" maxlength="2000" placeholder="وصف اختياري"></textarea></label><label>اختيار ملف<input id="cloudFile" type="file" required accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xlsx,.pptx"></label><small>المرحلة التجريبية: صور وملفات حتى 5 ميجابايت. دعم الفيديوهات الكبيرة لاحقًا.</small><button class="primary" type="submit">حفظ الشاهد سحابيًا</button></form><p id="cloudEvidenceStatus" role="status"></p>';
+area.innerHTML='<h3 class="cloud-gallery-title">📁 الشواهد المحفوظة لهذا المؤشر</h3><p class="cloud-help" id="cloudAccessHelp">لإضافة الصور والملفات، سجّلي الدخول من خانة «دخول إدارة منصة الجودة» أعلى الصفحة. ستظهر استمارة الرفع هنا فور تفعيل صلاحية حسابك. لا يلزم أعضاء الفريق التعامل مع أي برمجيات.</p><div id="cloudEvidenceItems"></div><button type="button" class="primary hidden" id="cloudUploadToggle">＋ إضافة شاهد جديد</button><form id="cloudEvidenceForm" class="cloud-upload-form hidden"><label>عنوان الشاهد<input id="cloudTitle" required maxlength="300" placeholder="عنوان واضح للدليل"></label><label>وصف الشاهد<textarea id="cloudDescription" maxlength="2000" placeholder="وصف اختياري"></textarea></label><label>مصدر الدليل<select id="cloudSource" required><option value="">اختاري مصدر الدليل</option><option value="documents">📋 الوثائق والسجلات</option><option value="observation">👁️ الملاحظة والممارسة الميدانية</option><option value="impact">📊 النتائج وقياس الأثر</option></select></label><div class="source-guidance" aria-live="polite">اختاري المصدر لتظهر ثلاثة أمثلة تساعدك في التصنيف.</div><label>اختيار ملف<input id="cloudFile" type="file" required accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xlsx,.pptx"></label><small>المرحلة التجريبية: صور وملفات حتى 5 ميجابايت. دعم الفيديوهات الكبيرة لاحقًا.</small><button class="primary" type="submit">حفظ الشاهد سحابيًا</button></form><p id="cloudEvidenceStatus" role="status"></p>';
 const styles=document.createElement('style');
 styles.textContent=`
 #cloudEvidencePanel{padding:4px 0 10px;max-width:100%;min-width:0}
@@ -22,7 +22,8 @@ styles.textContent=`
 .quality-evidence-actions button{margin:0!important}
 .quality-evidence-editor{background:#f8f6fb;border:1px solid #e8e0f1;border-radius:13px;padding:14px;margin-top:14px;display:grid;gap:10px}
 .quality-evidence-editor label{font-weight:700;color:#563879;display:grid;gap:6px}
-.quality-evidence-editor input,.quality-evidence-editor textarea{width:100%;max-width:100%;padding:10px;border:1px solid #e3dcec;border-radius:9px;background:white;font:inherit}
+.source-guidance{background:#f1edf8;border-radius:9px;padding:10px;color:#635477;font-size:13px;line-height:1.65}
+.quality-evidence-editor input,.quality-evidence-editor textarea,.quality-evidence-editor select{width:100%;max-width:100%;padding:10px;border:1px solid #e3dcec;border-radius:9px;background:white;font:inherit}
 .quality-evidence-editor textarea{min-height:80px}
 .quality-evidence-editor small{color:#726780}
 #cloudUploadToggle{margin:10px 0 16px;display:inline-block}
@@ -34,6 +35,9 @@ const localAdd=document.getElementById('addBtn');
 if(localAdd)localAdd.classList.add('hidden');
 evidenceNode.classList.add('hidden');
 const $=id=>document.getElementById(id);
+const evidenceSources={documents:{label:'📋 الوثائق والسجلات',examples:'سجلات التحضير والتخطيط للدروس • الخطط المدرسية والتشغيلية • محاضر الاجتماعات وسجلات المتابعة'},observation:{label:'👁️ الملاحظة والممارسة الميدانية',examples:'استمارات الزيارات الصفية • بطاقات جولات التعلم • سجلات الملاحظة المباشرة'},impact:{label:'📊 النتائج وقياس الأثر',examples:'تحليل نتائج التحصيل • عينات أعمال الطلبة التي توضح التقدم • تقارير قياس أثر البرامج والمبادرات'}};
+function sourceHelp(select){const node=select.closest('form').querySelector('.source-guidance');if(node)node.textContent=evidenceSources[select.value]?.examples||'اختاري المصدر لتظهر ثلاثة أمثلة تساعدك في التصنيف.';}
+$('cloudSource').addEventListener('change',event=>sourceHelp(event.target));
 let session=null,indicators=[],permissionRole=null,previewUrls=[],renderGeneration=0,editingEvidenceId=null,editingIndicatorCode=null;
 const isAuthorityView=()=>document.getElementById('visitor')?.classList.contains('active')===true;
 const toggle=$('cloudUploadToggle');
@@ -84,7 +88,7 @@ async function render(){
    const actions=document.createElement('div');actions.className='quality-evidence-actions';
    const title=document.createElement('h4');title.textContent=item.title;
    const desc=document.createElement('p');desc.textContent=item.description||item.original_filename;
-   const status=document.createElement('small');status.textContent=item.status==='approved'?'معتمد':'مسودة';
+   const status=document.createElement('small');status.textContent=(item.status==='approved'?'معتمد':'مسودة')+' • '+(evidenceSources[item.evidence_source]?.label||'مصدر غير مصنف');
    const download=document.createElement('button');download.className='secondary';download.textContent='تنزيل الملف';
    download.onclick=async()=>{
     download.disabled=true;
@@ -101,19 +105,21 @@ async function render(){
     edit.style.margin='5px';
     const editor=document.createElement('form');
     editor.className='quality-evidence-editor hidden';
-    editor.innerHTML='<label>عنوان الشاهد<input name="title" required maxlength="300"></label><label>وصف الشاهد<textarea name="description" maxlength="2000"></textarea></label><label>استبدال الصورة أو الملف (اختياري)<input name="file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xlsx,.pptx"></label><small>إذا لم تختاري ملفًا جديدًا فسيبقى الملف الحالي كما هو. الحد الأقصى 5 ميجابايت.</small><div class="quality-evidence-actions"><button type="submit" class="primary">حفظ التعديلات</button><button type="button" class="secondary" data-cancel>إلغاء</button></div>';
+    editor.innerHTML='<label>عنوان الشاهد<input name="title" required maxlength="300"></label><label>وصف الشاهد<textarea name="description" maxlength="2000"></textarea></label><label>مصدر الدليل<select name="evidence_source"><option value="">اختاري مصدر الدليل</option><option value="documents">📋 الوثائق والسجلات</option><option value="observation">👁️ الملاحظة والممارسة الميدانية</option><option value="impact">📊 النتائج وقياس الأثر</option></select></label><div class="source-guidance" aria-live="polite">اختاري المصدر لتظهر ثلاثة أمثلة تساعدك في التصنيف.</div><label>استبدال الصورة أو الملف (اختياري)<input name="file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xlsx,.pptx"></label><small>إذا لم تختاري ملفًا جديدًا فسيبقى الملف الحالي كما هو. الحد الأقصى 5 ميجابايت.</small><div class="quality-evidence-actions"><button type="submit" class="primary">حفظ التعديلات</button><button type="button" class="secondary" data-cancel>إلغاء</button></div>';
     editor.elements.namedItem('title').value=item.title;
     editor.elements.namedItem('description').value=item.description||'';
+    const category=editor.elements.namedItem('evidence_source');category.value=item.evidence_source||'';category.addEventListener('change',()=>sourceHelp(category));sourceHelp(category);
     edit.onclick=()=>{editor.classList.toggle('hidden');const opened=!editor.classList.contains('hidden');editingEvidenceId=opened?item.id:null;editingIndicatorCode=opened?$('codeBadge')?.textContent?.match(/\d+\.\d+\.\d+/)?.[0]:null;edit.textContent=opened?'إغلاق التعديل':'✏️ تعديل';};
     editor.querySelector('[data-cancel]').onclick=()=>{editor.classList.add('hidden');editingEvidenceId=null;editingIndicatorCode=null;edit.textContent='✏️ تعديل';};
     editor.addEventListener('submit',async event=>{
      event.preventDefault();
      const title=editor.elements.namedItem('title').value.trim();
      const description=editor.elements.namedItem('description').value.trim();
+     const evidenceSource=editor.elements.namedItem('evidence_source').value;
      const file=editor.elements.namedItem('file').files[0];
      if(file && file.size>5*1024*1024){alert('الملف أكبر من 5 ميجابايت.');return;}
      if(!title){alert('عنوان الشاهد مطلوب.');return;}
-     const body=new FormData();body.append('action','update');body.append('id',item.id);body.append('title',title);body.append('description',description);
+     const body=new FormData();body.append('action','update');body.append('id',item.id);body.append('title',title);body.append('description',description);if(evidenceSource)body.append('evidence_source',evidenceSource);
      if(file)body.append('file',file);
      const save=editor.querySelector('[type="submit"]');save.disabled=true;save.textContent='جارٍ حفظ التعديلات...';
      try{await call('quality-evidence-manage',{method:'POST',body});editingEvidenceId=null;editingIndicatorCode=null;await render();}
@@ -152,7 +158,7 @@ $('cloudEvidenceForm').addEventListener('submit',async e=>{
  const indicator=indicators.find(x=>x.code===code),file=$('cloudFile').files[0];
  if(!indicator||!file)return;
  if(file.size>5*1024*1024){$('cloudEvidenceStatus').textContent='الملف أكبر من الحد التجريبي 5 ميجابايت.';return;}
- const body=new FormData();body.append('file',file);body.append('indicator_id',indicator.id);body.append('title',$('cloudTitle').value);body.append('description',$('cloudDescription').value);
+ const body=new FormData();body.append('file',file);body.append('indicator_id',indicator.id);body.append('title',$('cloudTitle').value);body.append('description',$('cloudDescription').value);body.append('evidence_source',$('cloudSource').value);
  const btn=e.target.querySelector('button');btn.disabled=true;$('cloudEvidenceStatus').textContent='جارٍ رفع الشاهد...';
  try{
   const response=await call('quality-evidence-upload',{method:'POST',body});const data=await response.json();
