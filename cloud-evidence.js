@@ -7,7 +7,10 @@ const area=document.createElement('section');
 area.id='cloudEvidencePanel';
 area.className='cloud-evidence-panel';
 area.innerHTML='<h3>☁️ رفع شواهد المؤشر وحفظها سحابيًا</h3><p class="cloud-help" id="cloudAccessHelp">لإضافة الصور والملفات، سجّلي الدخول من خانة «دخول إدارة منصة الجودة» أعلى الصفحة. ستظهر استمارة الرفع هنا فور تفعيل صلاحية حسابك. لا يلزم أعضاء الفريق التعامل مع أي برمجيات.</p><div id="cloudEvidenceItems"></div><form id="cloudEvidenceForm" class="cloud-upload-form hidden"><label>عنوان الشاهد<input id="cloudTitle" required maxlength="300" placeholder="عنوان واضح للدليل"></label><label>وصف الشاهد<textarea id="cloudDescription" maxlength="2000" placeholder="وصف اختياري"></textarea></label><label>اختيار ملف<input id="cloudFile" type="file" required accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xlsx,.pptx"></label><small>المرحلة التجريبية: صور وملفات حتى 5 ميجابايت. دعم الفيديوهات الكبيرة لاحقًا.</small><button class="primary" type="submit">حفظ الشاهد سحابيًا</button></form><p id="cloudEvidenceStatus" role="status"></p>';
-evidenceNode.after(area);
+evidenceNode.before(area);
+const localAdd=document.getElementById('addBtn');
+if(localAdd)localAdd.classList.add('hidden');
+evidenceNode.classList.add('hidden');
 const $=id=>document.getElementById(id);
 let session=null,indicators=[],permissionRole=null;
 async function call(route,options={}){
@@ -39,7 +42,7 @@ async function render(){
  try{
   const r=await call('quality-evidence-api/evidence?indicator='+encodeURIComponent(indicator.id));
   const data=await r.json();const items=data.items||[];
-  if(!items.length){const el=document.createElement('p');el.className='note';el.textContent='لا توجد أدلة سحابية في هذا المؤشر حتى الآن.';list.append(el);return;}
+  if(!items.length){const el=document.createElement('p');el.className='note';el.textContent='لا توجد شواهد محفوظة سحابيًا لهذا المؤشر حتى الآن.';list.append(el);return 0;}
   for(const row of items){
    const item=row.quality_evidence;if(!item)continue;
    const card=document.createElement('article');card.className='tile';
@@ -86,7 +89,8 @@ async function render(){
    }
    list.append(card);
   }
- }catch{$('cloudEvidenceStatus').textContent='تعذر تحديث الأدلة السحابية حاليًا.';}
+  return items.length;
+ }catch{$('cloudEvidenceStatus').textContent='تعذر تحديث الأدلة السحابية حاليًا.';return 0;}
 }
 $('cloudEvidenceForm').addEventListener('submit',async e=>{
  e.preventDefault();const code=$('codeBadge')?.textContent?.match(/\d+\.\d+\.\d+/)?.[0];
@@ -97,8 +101,11 @@ $('cloudEvidenceForm').addEventListener('submit',async e=>{
  const btn=e.target.querySelector('button');btn.disabled=true;$('cloudEvidenceStatus').textContent='جارٍ رفع الشاهد...';
  try{
   const response=await call('quality-evidence-upload',{method:'POST',body});const data=await response.json();
-  $('cloudEvidenceStatus').textContent=data.success?'تم حفظ الشاهد كمسودة.':'لم يكتمل الحفظ.';
-  e.target.reset();await render();
+  if(!data.success){$('cloudEvidenceStatus').textContent='لم يكتمل حفظ الشاهد.';return;}
+  e.target.reset();
+  const visibleCount=await render();
+  if(visibleCount>0)$('cloudEvidenceStatus').textContent='✅ تم حفظ الشاهد سحابيًا. تظهر بطاقته أعلاه ويمكنك تعديلها أو حذفها.';
+  else $('cloudEvidenceStatus').textContent='تم قبول الرفع، لكن لم يظهر الشاهد في اللوحة. يرجى عدم إعادة الرفع قبل التحقق.';
  }catch(error){$('cloudEvidenceStatus').textContent='لم ينجح الرفع: '+error.message;}finally{btn.disabled=false;}
 });
 document.getElementById('indicatorList').addEventListener('click',()=>setTimeout(render,0));
