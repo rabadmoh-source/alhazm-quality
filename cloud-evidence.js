@@ -67,7 +67,7 @@ async function render(){
    const card=document.createElement('article');card.className='quality-evidence-card';
    const visual=document.createElement('div');visual.className='quality-evidence-preview';visual.textContent=item.mime_type?.startsWith('image/')?'🖼️':item.mime_type==='application/pdf'?'📕':'📄';
    if(item.mime_type?.startsWith('image/')){
-    call('quality-evidence-download?id='+encodeURIComponent(item.id)).then(r=>r.blob()).then(blob=>{if(!card.isConnected)return;const url=URL.createObjectURL(blob);previewUrls.push(url);const img=document.createElement('img');img.alt='معاينة '+item.title;img.src=url;visual.replaceChildren(img);}).catch(()=>{});
+    call('quality-evidence-download?id='+encodeURIComponent(item.id)).then(r=>r.blob()).then(blob=>{if(!card.isConnected)return;const url=URL.createObjectURL(blob);previewUrls.push(url);const img=document.createElement('img');img.alt='معاينة '+item.title;img.src=url;visual.replaceChildren(img);}).catch(()=>{visual.textContent='تعذرت معاينة الصورة';visual.style.fontSize='14px';});
    }
    const content=document.createElement('div');content.className='quality-evidence-content';
    const actions=document.createElement('div');actions.className='quality-evidence-actions';
