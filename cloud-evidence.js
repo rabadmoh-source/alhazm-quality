@@ -20,6 +20,11 @@ styles.textContent=`
 .quality-evidence-content p{line-height:1.8;margin:0 0 12px;color:#645a71}
 .quality-evidence-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
 .quality-evidence-actions button{margin:0!important}
+.quality-evidence-editor{background:#f8f6fb;border:1px solid #e8e0f1;border-radius:13px;padding:14px;margin-top:14px;display:grid;gap:10px}
+.quality-evidence-editor label{font-weight:700;color:#563879;display:grid;gap:6px}
+.quality-evidence-editor input,.quality-evidence-editor textarea{width:100%;max-width:100%;padding:10px;border:1px solid #e3dcec;border-radius:9px;background:white;font:inherit}
+.quality-evidence-editor textarea{min-height:80px}
+.quality-evidence-editor small{color:#726780}
 #cloudUploadToggle{margin:10px 0 16px;display:inline-block}
 #cloudEvidenceForm{border:1px solid #e7dff2;border-radius:15px;background:#faf8fd;padding:18px;max-width:100%;margin-top:8px}
 `;
@@ -91,18 +96,26 @@ async function render(){
    if(['admin','editor'].includes(permissionRole)){
     const edit=document.createElement('button');edit.type='button';edit.className='secondary';edit.textContent='✏️ تعديل';
     edit.style.margin='5px';
-    edit.onclick=async()=>{
-     const nextTitle=prompt('عنوان الشاهد',item.title);
-     if(nextTitle===null)return;
-     const nextDescription=prompt('وصف الشاهد',item.description||'');
-     if(nextDescription===null)return;
-     if(!nextTitle.trim()){alert('عنوان الشاهد مطلوب.');return;}
-     edit.disabled=true;
-     try{
-      await call('quality-evidence-manage',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'update',id:item.id,title:nextTitle.trim(),description:nextDescription.trim()})});
-      await render();
-     }catch{alert('تعذر حفظ التعديل.');edit.disabled=false;}
-    };
+    const editor=document.createElement('form');
+    editor.className='quality-evidence-editor hidden';
+    editor.innerHTML='<label>عنوان الشاهد<input name="title" required maxlength="300"></label><label>وصف الشاهد<textarea name="description" maxlength="2000"></textarea></label><label>استبدال الصورة أو الملف (اختياري)<input name="file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xlsx,.pptx"></label><small>إذا لم تختاري ملفًا جديدًا فسيبقى الملف الحالي كما هو. الحد الأقصى 5 ميجابايت.</small><div class="quality-evidence-actions"><button type="submit" class="primary">حفظ التعديلات</button><button type="button" class="secondary" data-cancel>إلغاء</button></div>';
+    editor.elements.namedItem('title').value=item.title;
+    editor.elements.namedItem('description').value=item.description||'';
+    edit.onclick=()=>{editor.classList.toggle('hidden');edit.textContent=editor.classList.contains('hidden')?'✏️ تعديل':'إغلاق التعديل';};
+    editor.querySelector('[data-cancel]').onclick=()=>{editor.classList.add('hidden');edit.textContent='✏️ تعديل';};
+    editor.addEventListener('submit',async event=>{
+     event.preventDefault();
+     const title=editor.elements.namedItem('title').value.trim();
+     const description=editor.elements.namedItem('description').value.trim();
+     const file=editor.elements.namedItem('file').files[0];
+     if(file && file.size>5*1024*1024){alert('الملف أكبر من 5 ميجابايت.');return;}
+     if(!title){alert('عنوان الشاهد مطلوب.');return;}
+     const body=new FormData();body.append('action','update');body.append('id',item.id);body.append('title',title);body.append('description',description);
+     if(file)body.append('file',file);
+     const save=editor.querySelector('[type="submit"]');save.disabled=true;save.textContent='جارٍ حفظ التعديلات...';
+     try{await call('quality-evidence-manage',{method:'POST',body});await render();}
+     catch(error){alert('تعذر حفظ التعديل: '+error.message);save.disabled=false;save.textContent='حفظ التعديلات';}
+    });
     const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='🗑️ حذف';
     remove.style.margin='5px';
     remove.onclick=async()=>{
@@ -113,7 +126,7 @@ async function render(){
       await render();
      }catch{alert('تعذر حذف الشاهد.');remove.disabled=false;}
     };
-    actions.append(edit,remove);
+    actions.append(edit,remove);content.append(editor);
    }
    content.append(actions);card.append(visual,content);list.append(card);
   }
