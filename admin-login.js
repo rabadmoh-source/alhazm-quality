@@ -18,7 +18,7 @@ roleSelect.innerHTML='<option value="">اختاري دورك في فريق ال�
 for(const value of names){const option=document.createElement('option');option.value=value;option.textContent=value;roleSelect.append(option);}
 for(const el of [fullName,roleSelect]){el.style.cssText='border:1px solid #dfd7ed;border-radius:11px;padding:11px;min-width:230px;max-width:100%;background:white';registration.append(el);}
 form.after(registration);
-const review=document.createElement('section');review.className='hidden';review.style.cssText='background:#fff;border:1px solid #e8dff0;border-radius:16px;padding:16px;margin-top:12px;max-width:100%';
+const review=document.createElement('section');review.className='hidden';review.style.cssText='background:#fff;border:1px solid #e8dff0;border-radius:16px;padding:20px;max-width:1320px;width:calc(100% - 40px);margin:12px auto 20px;box-sizing:border-box;overflow-wrap:anywhere';
 review.innerHTML='<h3 style="margin-top:0">👥 طلبات انضمام فريق الجودة</h3><p>اختيار العضوة لدورها لا يمنحها صلاحيات حتى تعتمدي طلبها.</p><div id="qualityReviewList"></div><button type="button" class="secondary" id="qualityRefreshRequests">تحديث القائمة</button>';
 form.closest('.admin-login').after(review);
 const api=async(session,action,values={})=>{
