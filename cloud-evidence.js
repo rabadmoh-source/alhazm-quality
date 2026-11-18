@@ -16,7 +16,7 @@ let session=null,indicators=[],permissionRole=null;
 async function call(route,options={}){
  const url=api+'/functions/v1/'+route;
  const resp=await fetch(url,{...options,headers:{apikey:key,authorization:'Bearer '+session.access_token,...options.headers}});
- if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error(e.error||'network_error');}
+ if(!resp.ok){const e=await resp.json().catch(()=>({}));throw new Error((e.error||'network_error')+(e.reason?' ('+e.reason+(e.http_status?' / '+e.http_status:'')+')':''));}
  return resp;
 }
 async function init(){
