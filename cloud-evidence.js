@@ -130,6 +130,17 @@ async function render(){
      }catch{alert('تعذر حذف الشاهد.');remove.disabled=false;}
     };
     actions.append(edit,remove);content.append(editor);
+    if(item.status!=='approved'){
+     const approve=document.createElement('button');approve.type='button';approve.className='primary';approve.textContent='✅ اعتماد للنشر';
+     approve.onclick=async()=>{
+      if(!confirm('اعتماد هذا الشاهد ليظهر في نافذة فريق الهيئة للعرض فقط؟'))return;
+      approve.disabled=true;
+      try{await call('quality-evidence-manage',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'approve',id:item.id})});editingEvidenceId=null;editingIndicatorCode=null;await render();}
+      catch(error){alert('تعذر اعتماد الشاهد: '+error.message);approve.disabled=false;}
+     };
+     actions.append(approve);
+    }
+
    }
    content.append(actions);card.append(visual,content);list.append(card);
   }
