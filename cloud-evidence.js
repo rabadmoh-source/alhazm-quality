@@ -34,7 +34,7 @@ const localAdd=document.getElementById('addBtn');
 if(localAdd)localAdd.classList.add('hidden');
 evidenceNode.classList.add('hidden');
 const $=id=>document.getElementById(id);
-let session=null,indicators=[],permissionRole=null,previewUrls=[],renderGeneration=0;
+let session=null,indicators=[],permissionRole=null,previewUrls=[],renderGeneration=0,editingEvidenceId=null,editingIndicatorCode=null;
 const toggle=$('cloudUploadToggle');
 toggle.addEventListener('click',()=>{$('cloudEvidenceForm').classList.toggle('hidden');toggle.textContent=$('cloudEvidenceForm').classList.contains('hidden')?'＋ إضافة شاهد جديد':'إغلاق استمارة الإضافة';});
 async function call(route,options={}){
@@ -60,6 +60,8 @@ async function render(){
  const generation=++renderGeneration;
  if(!session)return;
  const code=$('codeBadge')?.textContent?.match(/\d+\.\d+\.\d+/)?.[0];
+ if(editingEvidenceId&&editingIndicatorCode===code)return 1;
+ if(editingIndicatorCode!==code){editingEvidenceId=null;editingIndicatorCode=null;}
  const indicator=indicators.find(x=>x.code===code);
  const list=$('cloudEvidenceItems');for(const url of previewUrls)URL.revokeObjectURL(url);previewUrls=[];list.replaceChildren();
  if(!indicator){$('cloudEvidenceStatus').textContent='هذا المؤشر قيد الإعداد.';return;}
@@ -101,8 +103,8 @@ async function render(){
     editor.innerHTML='<label>عنوان الشاهد<input name="title" required maxlength="300"></label><label>وصف الشاهد<textarea name="description" maxlength="2000"></textarea></label><label>استبدال الصورة أو الملف (اختياري)<input name="file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xlsx,.pptx"></label><small>إذا لم تختاري ملفًا جديدًا فسيبقى الملف الحالي كما هو. الحد الأقصى 5 ميجابايت.</small><div class="quality-evidence-actions"><button type="submit" class="primary">حفظ التعديلات</button><button type="button" class="secondary" data-cancel>إلغاء</button></div>';
     editor.elements.namedItem('title').value=item.title;
     editor.elements.namedItem('description').value=item.description||'';
-    edit.onclick=()=>{editor.classList.toggle('hidden');edit.textContent=editor.classList.contains('hidden')?'✏️ تعديل':'إغلاق التعديل';};
-    editor.querySelector('[data-cancel]').onclick=()=>{editor.classList.add('hidden');edit.textContent='✏️ تعديل';};
+    edit.onclick=()=>{editor.classList.toggle('hidden');const opened=!editor.classList.contains('hidden');editingEvidenceId=opened?item.id:null;editingIndicatorCode=opened?$('codeBadge')?.textContent?.match(/\d+\.\d+\.\d+/)?.[0]:null;edit.textContent=opened?'إغلاق التعديل':'✏️ تعديل';};
+    editor.querySelector('[data-cancel]').onclick=()=>{editor.classList.add('hidden');editingEvidenceId=null;editingIndicatorCode=null;edit.textContent='✏️ تعديل';};
     editor.addEventListener('submit',async event=>{
      event.preventDefault();
      const title=editor.elements.namedItem('title').value.trim();
@@ -113,7 +115,7 @@ async function render(){
      const body=new FormData();body.append('action','update');body.append('id',item.id);body.append('title',title);body.append('description',description);
      if(file)body.append('file',file);
      const save=editor.querySelector('[type="submit"]');save.disabled=true;save.textContent='جارٍ حفظ التعديلات...';
-     try{await call('quality-evidence-manage',{method:'POST',body});await render();}
+     try{await call('quality-evidence-manage',{method:'POST',body});editingEvidenceId=null;editingIndicatorCode=null;await render();}
      catch(error){alert('تعذر حفظ التعديل: '+error.message);save.disabled=false;save.textContent='حفظ التعديلات';}
     });
     const remove=document.createElement('button');remove.type='button';remove.className='secondary';remove.textContent='🗑️ حذف';
