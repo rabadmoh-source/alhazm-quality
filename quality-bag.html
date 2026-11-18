@@ -18,7 +18,7 @@ main{max-width:1400px;margin:auto;padding:24px 4vw 70px}
 button,select{font:inherit}button{cursor:pointer;border:0;border-radius:11px;padding:10px 15px;font-weight:800}
 .primary{background:var(--turq);color:#fff}.secondary{background:#f0eafa;color:var(--violet)}
 button:disabled{opacity:.5;cursor:wait}select{background:white;border:1px solid var(--line);border-radius:10px;padding:9px}
-.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:780px}th,td{text-align:right;padding:12px 9px;border-bottom:1px solid #f0ecf5}th{color:var(--violet);font-size:14px;background:#faf8fc}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:780px}th,td{text-align:right;padding:12px 9px;border-bottom:1px solid #f0ecf5}th{color:var(--violet);font-size:14px;background:#faf8fc}.group-domain td{background:#ede6f7;color:#4b306e;font-weight:800;font-size:17px;border-top:18px solid white}.group-standard td{background:#f7f4fc;color:#68498a;font-weight:800;border-top:7px solid white}
 .badge{border-radius:20px;background:#eee8f5;color:#563879;padding:6px 10px;font-size:13px;white-space:nowrap}.green{background:#e3f6ee;color:#166a50}.yellow{background:#fff4d9;color:#94630b}.gray{background:#f2eff5;color:#71657d}
 small{color:#756e81}#message{min-height:23px;color:#705b85}h2{margin:2px 0 14px;font-size:21px}
 @media(max-width:790px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}header h1{font-size:23px}main{padding:16px}}
@@ -63,16 +63,21 @@ async function load(){
   const [c,b]=await Promise.all([request('quality-evidence-api/catalog'),request('quality-evidence-api/bag')]);
   catalog=await c.json();links=(await b.json()).links||[];
   $('domain').replaceChildren(new Option('جميع المجالات',''));
-  for(const d of catalog.domains)$('domain').add(new Option(d.code+' • '+d.title,d.id));
+  for(const d of [...catalog.domains].sort((a,b)=>compareCodes(a.code,b.code)))$('domain').add(new Option(d.code+' • '+d.title,d.id));
   render();$('export').disabled=false;
   $('message').textContent='✅ الإحصاءات محدَّثة من الشواهد السحابية.';
  }catch(e){$('message').textContent=e.message;$('export').disabled=true;}
+}
+function compareCodes(a,b){
+ const left=String(a||'').match(/\\d+/g)?.map(Number)||[],right=String(b||'').match(/\\d+/g)?.map(Number)||[];
+ for(let i=0;i<Math.max(left.length,right.length);i++){const diff=(left[i]||0)-(right[i]||0);if(diff)return diff;}
+ return String(a||'').localeCompare(String(b||''),'ar');
 }
 function selectedIndicators(){
  const domainId=$('domain').value;
  const standards=new Map(catalog.standards.map(s=>[s.id,s]));
  const domains=new Map(catalog.domains.map(d=>[d.id,d]));
- return catalog.indicators.map(i=>{const st=standards.get(i.standard_id),d=domains.get(st?.domain_id);return {...i,standard:st,domain:d};}).filter(i=>i.domain&&(!domainId||i.domain.id===domainId));
+ return catalog.indicators.map(i=>{const st=standards.get(i.standard_id),d=domains.get(st?.domain_id);return {...i,standard:st,domain:d};}).filter(i=>i.domain&&(!domainId||i.domain.id===domainId)).sort((a,b)=>compareCodes(a.domain.code,b.domain.code)||compareCodes(a.standard.code,b.standard.code)||compareCodes(a.code,b.code));
 }
 function counts(indicator){
  const items=links.filter(l=>l.indicator_id===indicator.id).map(l=>l.quality_evidence).filter(Boolean);
@@ -83,8 +88,10 @@ function counts(indicator){
 function render(){
  if(!catalog)return;
  const list=selectedIndicators();$('rows').replaceChildren();
- let approvedTotal=0,triangulated=0,missing=0;
+ let approvedTotal=0,triangulated=0,missing=0,lastDomain='',lastStandard='';
  for(const i of list){
+  if(i.domain.id!==lastDomain){const heading=document.createElement('tr');heading.className='group-domain';const cell=document.createElement('td');cell.colSpan=6;cell.textContent='📁 المجال '+i.domain.code+' • '+i.domain.title;heading.append(cell);$('rows').append(heading);lastDomain=i.domain.id;lastStandard='';}
+  if(i.standard.id!==lastStandard){const heading=document.createElement('tr');heading.className='group-standard';const cell=document.createElement('td');cell.colSpan=6;cell.textContent='المعيار '+i.standard.code+' • '+i.standard.title;heading.append(cell);$('rows').append(heading);lastStandard=i.standard.id;}
   const c=counts(i);approvedTotal+=c.approved.length;if(c.sources.size===3)triangulated++;if(!c.approved.length)missing++;
   const tr=document.createElement('tr');
   const values=[i.domain.title,i.code+' • '+i.title,c.approved.length,c.drafts,[...c.sources].map(s=>sourceNames[s]).join(' + ')||'غير مصنف'];
