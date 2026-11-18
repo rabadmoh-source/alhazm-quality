@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>حقيبة الحزم الذكية للشواهد | منصة جودتنا</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+:root{--violet:#563879;--deep:#2c2048;--turq:#119d98;--line:#e7e0ef}
+*{box-sizing:border-box}body{margin:0;background:#f7f5fb;font-family:Tajawal,Arial,sans-serif;color:var(--deep)}
+header{background:linear-gradient(110deg,#2b214c,#65468c);padding:25px max(5vw,20px);color:#fff}
+header h1{margin:0 0 7px;font-size:28px}header p{margin:0;color:#dbd2e8}
+a{color:inherit}.back{display:inline-block;margin-top:14px;text-decoration:none;padding:10px 14px;border:1px solid #ffffff80;border-radius:10px}
+main{max-width:1400px;margin:auto;padding:24px 4vw 70px}
+.notice,.panel,.stat,.row{border:1px solid var(--line);background:#fff;border-radius:17px}
+.notice{padding:18px;margin-bottom:18px;line-height:1.8;color:#635770}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.stat{padding:20px}.stat strong{display:block;font-size:29px;color:var(--violet)}.stat span{font-size:14px;color:#776e83}
+.panel{padding:20px;margin-bottom:15px}.tools{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+button,select{font:inherit}button{cursor:pointer;border:0;border-radius:11px;padding:10px 15px;font-weight:800}
+.primary{background:var(--turq);color:#fff}.secondary{background:#f0eafa;color:var(--violet)}
+button:disabled{opacity:.5;cursor:wait}select{background:white;border:1px solid var(--line);border-radius:10px;padding:9px}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:780px}th,td{text-align:right;padding:12px 9px;border-bottom:1px solid #f0ecf5}th{color:var(--violet);font-size:14px;background:#faf8fc}
+.badge{border-radius:20px;background:#eee8f5;color:#563879;padding:6px 10px;font-size:13px;white-space:nowrap}.green{background:#e3f6ee;color:#166a50}.yellow{background:#fff4d9;color:#94630b}.gray{background:#f2eff5;color:#71657d}
+small{color:#756e81}#message{min-height:23px;color:#705b85}h2{margin:2px 0 14px;font-size:21px}
+@media(max-width:790px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}header h1{font-size:23px}main{padding:16px}}
+</style></head>
+<body>
+<header><h1>📦 حقيبة الحزم الذكية للأدلة والشواهد</h1><p>منصة الحزم لجودة الأداء المدرسي • مدرسة الحزم للتعليم الأساسي (1–4)</p><a class="back" href="./">↩ العودة إلى منصة جودتنا</a></header>
+<main>
+<div class="notice">تتحدث الحقيبة تلقائيًا من الشواهد السحابية. <b>تثليث مصادر الأدلة مؤشر إرشادي على التنوع، وليس حكمًا آليًا باستيفاء المؤشر.</b> تُصدَّر الشواهد المعتمدة فقط، وتبقى المسودات في المنصة. الأدلة القديمة غير المصنفة لا تُحتسب ضمن مصادر التثليث حتى تصنيفها.</div>
+<section class="stats">
+<div class="stat"><strong id="total">—</strong><span>المؤشرات المدرجة</span></div>
+<div class="stat"><strong id="approved">—</strong><span>الشواهد المعتمدة</span></div>
+<div class="stat"><strong id="three">—</strong><span>مؤشرات تغطي المصادر الثلاثة</span></div>
+<div class="stat"><strong id="missing">—</strong><span>مؤشرات بلا شواهد معتمدة</span></div>
+</section>
+<section class="panel">
+<div class="tools">
+<label for="domain">المجال: </label><select id="domain"><option value="">جميع المجالات</option></select>
+<button class="secondary" id="refresh">🔄 تحديث الإحصاءات</button>
+<button class="primary" id="export">📥 تنزيل الحقيبة (ZIP)</button>
+</div>
+<p id="message" role="status">جارٍ تحميل بيانات الحقيبة...</p>
+<p><small>التنزيل يُنشئ مجلدًا لكل مجال، ثم معيار، ثم مؤشر، ويضيف ملف فهرس CSV. عند اختيار مجال محدد تُصدَّر ملفاته فقط. قد تستغرق الحقائب الكبيرة عدة دقائق.</small></p>
+</section>
+<section class="panel"><h2>📊 مرصد الشواهد وتنوع الأدلة</h2><div class="tablewrap"><table><thead><tr><th>المجال</th><th>المؤشر</th><th>المعتمدة</th><th>المسودات</th><th>مصادر الأدلة</th><th>التنوع</th></tr></thead><tbody id="rows"></tbody></table></div></section>
+</main>
+<script type="module">
+import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.79.0';
+import JSZip from 'https://esm.sh/jszip@3.10.1';
+const api='https://tyxdoyiqltanvozrpxtu.supabase.co',key='sb_publishable_6gpJNjwQTHDnMbiJJzBt9A_gILYiLio';
+const client=createClient(api,key,{auth:{persistSession:true,autoRefreshToken:true}});
+const $=id=>document.getElementById(id);
+const sourceNames={documents:'وثائق وسجلات',observation:'ملاحظة وممارسة',impact:'نتائج وأثر'};
+let session=null,catalog=null,links=[];
+function safeName(x){return String(x||'بدون عنوان').replace(/[\\/:*?"<>|\x00-\x1f]/g,'_').slice(0,120);}
+function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"';}
+async function request(route){const r=await fetch(api+'/functions/v1/'+route,{headers:{apikey:key,authorization:'Bearer '+session.access_token}});if(!r.ok)throw new Error('تعذر الاتصال ببيانات الحقيبة ('+r.status+').');return r;}
+async function load(){
+ $('message').textContent='جارٍ تحديث البيانات...';
+ const auth=await client.auth.getSession();session=auth.data.session;
+ if(!session){$('message').textContent='سجّلي الدخول بحساب فريق التقويم الذاتي من الصفحة الرئيسية أولًا.';$('export').disabled=true;return;}
+ try{
+  const [c,b]=await Promise.all([request('quality-evidence-api/catalog'),request('quality-evidence-api/bag')]);
+  catalog=await c.json();links=(await b.json()).links||[];
+  $('domain').replaceChildren(new Option('جميع المجالات',''));
+  for(const d of catalog.domains)$('domain').add(new Option(d.code+' • '+d.title,d.id));
+  render();$('export').disabled=false;
+  $('message').textContent='✅ الإحصاءات محدَّثة من الشواهد السحابية.';
+ }catch(e){$('message').textContent=e.message;$('export').disabled=true;}
+}
+function selectedIndicators(){
+ const domainId=$('domain').value;
+ const standards=new Map(catalog.standards.map(s=>[s.id,s]));
+ const domains=new Map(catalog.domains.map(d=>[d.id,d]));
+ return catalog.indicators.map(i=>{const st=standards.get(i.standard_id),d=domains.get(st?.domain_id);return {...i,standard:st,domain:d};}).filter(i=>i.domain&&(!domainId||i.domain.id===domainId));
+}
+function counts(indicator){
+ const items=links.filter(l=>l.indicator_id===indicator.id).map(l=>l.quality_evidence).filter(Boolean);
+ const approved=items.filter(i=>i.status==='approved');
+ const sources=new Set(approved.map(i=>i.evidence_source).filter(s=>sourceNames[s]));
+ return {items,approved,drafts:items.length-approved.length,sources};
+}
+function render(){
+ if(!catalog)return;
+ const list=selectedIndicators();$('rows').replaceChildren();
+ let approvedTotal=0,triangulated=0,missing=0;
+ for(const i of list){
+  const c=counts(i);approvedTotal+=c.approved.length;if(c.sources.size===3)triangulated++;if(!c.approved.length)missing++;
+  const tr=document.createElement('tr');
+  const values=[i.domain.title,i.code+' • '+i.title,c.approved.length,c.drafts,[...c.sources].map(s=>sourceNames[s]).join(' + ')||'غير مصنف'];
+  for(const value of values){const td=document.createElement('td');td.textContent=String(value);tr.append(td);}
+  const td=document.createElement('td');const tag=document.createElement('span');
+  tag.className='badge '+(c.sources.size===3?'green':c.sources.size?'yellow':'gray');
+  tag.textContent=c.sources.size+'/3 '+(c.sources.size===3?'مصادر متنوعة':c.sources.size?'يحتاج تنويعًا':'لا تنوع موثق');
+  td.append(tag);tr.append(td);$('rows').append(tr);
+ }
+ $('total').textContent=list.length;$('approved').textContent=approvedTotal;$('three').textContent=triangulated;$('missing').textContent=missing;
+}
+$('domain').addEventListener('change',render);
+$('refresh').addEventListener('click',load);
+$('export').addEventListener('click',async()=>{
+ const button=$('export');button.disabled=true;
+ try{
+  const zip=new JSZip(),manifest=[['المجال','المعيار','المؤشر','عنوان الشاهد','اسم الملف','مصدر الدليل','حالة الشاهد']];
+  const list=selectedIndicators();const records=[];
+  for(const i of list){for(const evidence of counts(i).approved)records.push({i,evidence});}
+  if(!records.length){$('message').textContent='لا توجد شواهد معتمدة في النطاق المحدد للتنزيل.';return;}
+  const totalBytes=records.reduce((sum,r)=>sum+Number(r.evidence.size_bytes||0),0);
+  if(totalBytes>250*1024*1024){$('message').textContent='الحقيبة كبيرة جدًا للتنزيل دفعة واحدة. اختاري مجالًا واحدًا من القائمة.';return;}
+  let done=0;
+  for(const {i,evidence} of records){
+   $('message').textContent='جارٍ تجهيز الملفات: '+(++done)+' من '+records.length;
+   const response=await request('quality-evidence-download?id='+encodeURIComponent(evidence.id));
+   const filename=safeName(evidence.original_filename);
+   const path=safeName(i.domain.code+' '+i.domain.title)+'/'+safeName(i.standard.code+' '+i.standard.title)+'/'+safeName(i.code+' '+i.title)+'/'+safeName(evidence.id.slice(0,8)+' '+filename);
+   zip.file(path,await response.blob());
+   manifest.push([i.domain.title,i.standard.title,i.code+' '+i.title,evidence.title,evidence.original_filename,sourceNames[evidence.evidence_source]||'غير مصنف',evidence.status]);
+  }
+  zip.file('فهرس_الشواهد.csv','\uFEFF'+manifest.map(row=>row.map(csvCell).join(',')).join('\r\n'));
+  $('message').textContent='جارٍ ضغط الملفات...';
+  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='حقيبة_الحزم_'+new Date().toISOString().slice(0,10)+'.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  $('message').textContent='✅ تم تجهيز '+records.length+' شاهدًا معتمدًا في الحقيبة.';
+ }catch(error){$('message').textContent='تعذر تنزيل الحقيبة: '+error.message;}finally{button.disabled=false;}
+});
+load();
+</script>
+</body></html>
