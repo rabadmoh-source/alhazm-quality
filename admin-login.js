@@ -37,7 +37,7 @@ signup.addEventListener('click',async()=>{
  if(!address||secret.length<8){status('أدخلي بريدك وكلمة مرور من 8 أحرف على الأقل لإنشاء الحساب مرة واحدة.');return;}
  signup.disabled=true;status('جارٍ إنشاء الحساب...');
  try{
-  const {data,error}=await client.auth.signUp({email:address,password:secret});
+  const {data,error}=await client.auth.signUp({email:address,password:secret,options:{emailRedirectTo:'https://rabadmoh-source.github.io/alhazm-quality/'}});
   if(error){status(error.status===429?'خدمة البريد محدودة مؤقتًا. لا تعيدي المحاولة الآن.':'تعذر إنشاء الحساب: '+error.message);return;}
   if(!data.session){status('تم طلب إنشاء الحساب. إذا وصلتك رسالة تأكيد، افتحيها مرة واحدة ثم عودي للدخول.');return;}
   display(data.session);await activate(data.session);
