@@ -95,7 +95,7 @@ async function render(){
      setTimeout(()=>URL.revokeObjectURL(url),10000);
     }catch{alert('تعذر تنزيل الملف. يرجى إعادة المحاولة.')}finally{download.disabled=false;}
    };
-   content.append(title,desc,status);actions.append(download);
+   content.append(title,desc,status);if(!isAuthorityView())actions.append(download);
    if(!isAuthorityView()&&['admin','editor'].includes(permissionRole)){
     const edit=document.createElement('button');edit.type='button';edit.className='secondary';edit.textContent='✏️ تعديل';
     edit.style.margin='5px';
