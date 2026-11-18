@@ -89,9 +89,10 @@ function render(){
  if(!catalog)return;
  const list=selectedIndicators();$('rows').replaceChildren();
  let approvedTotal=0,triangulated=0,missing=0,lastDomain='',lastStandard='';
+ const domainPalette=[{bg:'#e9e0f7',fg:'#4f317b',hue:270},{bg:'#dff5ee',fg:'#116b5a',hue:164},{bg:'#e2effe',fg:'#205e9a',hue:209},{bg:'#fff0d8',fg:'#925912',hue:37},{bg:'#fbe4ed',fg:'#934360',hue:340}];
  for(const i of list){
-  if(i.domain.id!==lastDomain){const heading=document.createElement('tr');heading.className='group-domain';const cell=document.createElement('td');cell.colSpan=6;cell.textContent='📁 المجال '+i.domain.code+' • '+i.domain.title;heading.append(cell);$('rows').append(heading);lastDomain=i.domain.id;lastStandard='';}
-  if(i.standard.id!==lastStandard){const heading=document.createElement('tr');heading.className='group-standard';const cell=document.createElement('td');cell.colSpan=6;cell.textContent='المعيار '+i.standard.code+' • '+i.standard.title;heading.append(cell);$('rows').append(heading);lastStandard=i.standard.id;}
+  if(i.domain.id!==lastDomain){const heading=document.createElement('tr');heading.className='group-domain';const cell=document.createElement('td');cell.colSpan=6;cell.textContent='📁 المجال '+i.domain.code+' • '+i.domain.title;const p=domainPalette[(Number(i.domain.code)-1+5)%5]||domainPalette[0];cell.style.background=p.bg;cell.style.color=p.fg;heading.append(cell);$('rows').append(heading);lastDomain=i.domain.id;lastStandard='';}
+  if(i.standard.id!==lastStandard){const heading=document.createElement('tr');heading.className='group-standard';const cell=document.createElement('td');cell.colSpan=6;cell.textContent='المعيار '+i.standard.code+' • '+i.standard.title;const p=domainPalette[(Number(i.domain.code)-1+5)%5]||domainPalette[0];const n=Number(i.standard.code.split('.').pop())||1;const hue=(p.hue+(n-1)*13)%360;cell.style.background='hsl('+hue+' 65% '+(95-(n%3))+'%)';cell.style.color='hsl('+hue+' 55% 28%)';cell.style.borderRight='5px solid hsl('+hue+' 54% 54%)';heading.append(cell);$('rows').append(heading);lastStandard=i.standard.id;}
   const c=counts(i);approvedTotal+=c.approved.length;if(c.sources.size===3)triangulated++;if(!c.approved.length)missing++;
   const tr=document.createElement('tr');
   const values=[i.domain.title,i.code+' • '+i.title,c.approved.length,c.drafts,[...c.sources].map(s=>sourceNames[s]).join(' + ')||'غير مصنف'];
