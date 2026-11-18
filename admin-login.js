@@ -62,8 +62,9 @@ function showAccount(session,isAdmin=false){
  if(!session){accountBadge.style.display='none';accountText.textContent='';return;}
  const address=session.user?.email||'حساب مسجل';
  accountText.textContent=(isAdmin?'المديرة • رباب العجمية':(session.user?.user_metadata?.display_name||'الحساب الحالي')+' • '+(session.user?.user_metadata?.requested_role||'بانتظار تحديد الدور'))+' | '+address;
- accountBadge.style.display='inline-flex';
+ accountBadge.style.display=document.getElementById('visitor')?.classList.contains('active')?'none':'inline-flex';
 }
+let signedInAdmin=false;
 const status=value=>{message.textContent=value;};
 function display(session){
  const active=Boolean(session);
@@ -78,7 +79,8 @@ async function activate(session){
   const response=await fetch(endpoint+'/functions/v1/quality-admin-activate',{method:'POST',headers});
   showAccount(session,response.ok);
   status(response.ok?'تم الدخول بنجاح. يمكنك الآن إضافة الأدلة والشواهد.':'تم الدخول، لكن حسابك ينتظر اعتماد صلاحية الإدارة.');
-  if(response.ok){review.classList.remove('hidden');await refreshRequests(session);}
+  signedInAdmin=response.ok;
+  if(response.ok){review.classList.toggle('hidden',document.getElementById('visitor')?.classList.contains('active'));await refreshRequests(session);}
   else{
    review.classList.add('hidden');
    const team=await api(session,'request');
@@ -110,8 +112,15 @@ signup.addEventListener('click',async()=>{
  }catch{status('تعذر الاتصال مؤقتًا.');}finally{signup.disabled=false;}
 });
 logout.addEventListener('click',async()=>{
- await client.auth.signOut();display(null);review.classList.add('hidden');status('تم تسجيل الخروج.');document.dispatchEvent(new Event('quality-logout-ready'));
+ await client.auth.signOut();signedInAdmin=false;display(null);review.classList.add('hidden');status('تم تسجيل الخروج.');document.dispatchEvent(new Event('quality-logout-ready'));
 });
 const {data:{session}}=await client.auth.getSession();
 display(session);
 if(session)await activate(session);else status('أدخلي البريد وكلمة المرور. للحساب الأول فقط استخدمي زر «إنشاء حسابي لأول مرة».');
+
+document.addEventListener('quality-mode-changed',event=>{
+ const readonly=event.detail.mode==='visitor';
+ form.closest('.admin-login').classList.toggle('hidden',readonly);
+ review.classList.toggle('hidden',readonly||!signedInAdmin);
+ accountBadge.style.display=readonly||!accountText.textContent?'none':'inline-flex';
+});
