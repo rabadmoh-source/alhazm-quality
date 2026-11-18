@@ -29,7 +29,7 @@ const localAdd=document.getElementById('addBtn');
 if(localAdd)localAdd.classList.add('hidden');
 evidenceNode.classList.add('hidden');
 const $=id=>document.getElementById(id);
-let session=null,indicators=[],permissionRole=null,previewUrls=[];
+let session=null,indicators=[],permissionRole=null,previewUrls=[],renderGeneration=0;
 const toggle=$('cloudUploadToggle');
 toggle.addEventListener('click',()=>{$('cloudEvidenceForm').classList.toggle('hidden');toggle.textContent=$('cloudEvidenceForm').classList.contains('hidden')?'＋ إضافة شاهد جديد':'إغلاق استمارة الإضافة';});
 async function call(route,options={}){
@@ -52,6 +52,7 @@ async function init(){
  }
 }
 async function render(){
+ const generation=++renderGeneration;
  if(!session)return;
  const code=$('codeBadge')?.textContent?.match(/\d+\.\d+\.\d+/)?.[0];
  const indicator=indicators.find(x=>x.code===code);
@@ -60,7 +61,9 @@ async function render(){
  $('cloudEvidenceStatus').textContent='';
  try{
   const r=await call('quality-evidence-api/evidence?indicator='+encodeURIComponent(indicator.id));
-  const data=await r.json();const items=data.items||[];
+  const data=await r.json();
+  if(generation!==renderGeneration)return 0;
+  const items=data.items||[];
   if(!items.length){const el=document.createElement('p');el.className='note';el.textContent='لا توجد شواهد محفوظة سحابيًا لهذا المؤشر حتى الآن.';list.append(el);return 0;}
   for(const row of items){
    const item=row.quality_evidence;if(!item)continue;
