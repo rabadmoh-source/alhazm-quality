@@ -35,6 +35,7 @@ if(localAdd)localAdd.classList.add('hidden');
 evidenceNode.classList.add('hidden');
 const $=id=>document.getElementById(id);
 let session=null,indicators=[],permissionRole=null,previewUrls=[],renderGeneration=0,editingEvidenceId=null,editingIndicatorCode=null;
+const isAuthorityView=()=>document.getElementById('visitor')?.classList.contains('active')===true;
 const toggle=$('cloudUploadToggle');
 toggle.addEventListener('click',()=>{$('cloudEvidenceForm').classList.toggle('hidden');toggle.textContent=$('cloudEvidenceForm').classList.contains('hidden')?'＋ إضافة شاهد جديد':'إغلاق استمارة الإضافة';});
 async function call(route,options={}){
@@ -50,7 +51,7 @@ async function init(){
   const response=await call('quality-evidence-api/catalog');
   const catalog=await response.json();indicators=catalog.indicators||[];permissionRole=catalog.role;
   document.body.classList.add('cloud-authenticated');$('cloudAccessHelp').textContent='أنتِ الآن في مساحة الأدلة السحابية. اختاري ملفًا ثم احفظيه، وسيظهر للشخص المخوّل ضمن هذا المؤشر.';
-  if(['admin','editor'].includes(catalog.role))toggle.classList.remove('hidden');else {$('cloudAccessHelp').textContent='لديك صلاحية الاطلاع فقط على الشواهد، وليس رفع الملفات.';toggle.classList.add('hidden');}
+  if(!isAuthorityView()&&['admin','editor'].includes(catalog.role))toggle.classList.remove('hidden');else {$('cloudAccessHelp').textContent='لديك صلاحية الاطلاع فقط على الشواهد، وليس رفع الملفات.';toggle.classList.add('hidden');}
   await render();
  }catch{
   $('cloudEvidenceStatus').textContent='الحساب غير مفعل للوصول إلى أدلة المؤشرات بعد.';
@@ -70,7 +71,7 @@ async function render(){
   const r=await call('quality-evidence-api/evidence?indicator='+encodeURIComponent(indicator.id));
   const data=await r.json();
   if(generation!==renderGeneration)return 0;
-  const items=data.items||[];
+  const items=(data.items||[]).filter(row=>!isAuthorityView()||row.quality_evidence?.status==='approved');
   if(!items.length){const el=document.createElement('p');el.className='note';el.textContent='لا توجد شواهد محفوظة سحابيًا لهذا المؤشر حتى الآن.';list.append(el);return 0;}
   for(const row of items){
    const item=row.quality_evidence;if(!item)continue;
@@ -95,7 +96,7 @@ async function render(){
     }catch{alert('تعذر تنزيل الملف. يرجى إعادة المحاولة.')}finally{download.disabled=false;}
    };
    content.append(title,desc,status);actions.append(download);
-   if(['admin','editor'].includes(permissionRole)){
+   if(!isAuthorityView()&&['admin','editor'].includes(permissionRole)){
     const edit=document.createElement('button');edit.type='button';edit.className='secondary';edit.textContent='✏️ تعديل';
     edit.style.margin='5px';
     const editor=document.createElement('form');
@@ -159,3 +160,12 @@ client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_IN'){setTimeout(()=>i
 init();
 document.addEventListener('quality-login-ready',()=>init());
 document.addEventListener('quality-logout-ready',()=>{session=null;document.body.classList.remove('cloud-authenticated');$('cloudEvidenceForm').classList.add('hidden');$('cloudEvidenceItems').replaceChildren();});
+
+document.addEventListener('quality-mode-changed',event=>{
+ editingEvidenceId=null;editingIndicatorCode=null;
+ const viewing=event.detail.mode==='visitor';
+ toggle.classList.toggle('hidden',viewing||!['admin','editor'].includes(permissionRole));
+ $('cloudEvidenceForm').classList.add('hidden');toggle.textContent='＋ إضافة شاهد جديد';
+ $('cloudAccessHelp').textContent=viewing?'نافذة فريق الهيئة للعرض فقط: تظهر الشواهد المعتمدة دون أدوات إضافة أو تعديل أو حذف.':'أنتِ الآن في مساحة الأدلة السحابية. يمكن إضافة الشواهد وإدارتها من هذه النافذة.';
+ render();
+});
